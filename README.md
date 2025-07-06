@@ -13,7 +13,11 @@ A clean, lightweight To-Do List app built with **Flutter**, designed with simpli
 
 ## 📸 Screenshots
 
-> *(Yet to upload)*
+### ✅ Light Theme
+![Screenshot 1](assets/screenshots/WhatsApp_Image_2025-07-06_at_19.23.11_6a1663fb.png)
+
+### ☑️ Checkbox Interaction
+![Screenshot 2](assets/screenshots/screenshot2.png)
 
 ## 🚀 Getting Started
 
