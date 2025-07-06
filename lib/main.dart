@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,7 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "Rishabh's App",
+      title: "To-Do List",
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.lightGreen,
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
           surface: Colors.white,
         ),
       ),
-      home: const MyHomePage(title: "Rishbh's App"),
+      home: const MyHomePage(title: "To-Do List"),
     );
   }
 }
@@ -44,6 +45,53 @@ class _MyHomePageState extends State<MyHomePage> {
 
   List<String> tileTitles = [];
   List<bool> tileBools = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadData();
+  }
+
+  Future<void> saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('titles', tileTitles);
+    await prefs.setStringList(
+      'bools',
+      tileBools.map((e) => e.toString()).toList(),
+    );
+  }
+
+  Future<void> loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      tileTitles = prefs.getStringList('titles') ?? [];
+      tileBools =
+          (prefs.getStringList('bools') ?? []).map((e) => e == 'true').toList();
+    });
+  }
+
+  void _reorder() {
+    List<bool> newBools = [];
+    List<String> newStrings = [];
+
+    for (int i = 0; i < tileBools.length; i++) {
+      if (tileBools[i] == false) {
+        newBools.add(tileBools[i]);
+        newStrings.add(tileTitles[i]);
+      }
+    }
+
+    for (int i = 0; i < tileTitles.length; i++) {
+      if (tileBools[i]) {
+        newBools.add(tileBools[i]);
+        newStrings.add(tileTitles[i]);
+      }
+    }
+
+    tileTitles = newStrings;
+    tileBools = newBools;
+  }
+
   void _addExpansionTile() {
     showDialog(
       context: context,
@@ -62,21 +110,23 @@ class _MyHomePageState extends State<MyHomePage> {
           actions: [
             TextButton(
               onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
                 if (newTitle != '') {
                   setState(() {
                     tileTitles.add(newTitle);
                     tileBools.add(false);
+                    _reorder();
+                    saveData();
                   });
                   Navigator.pop(context);
                 }
               },
               child: Text("Add"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text("Cancel"),
             ),
           ],
         );
@@ -90,41 +140,65 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-
         title: Text(widget.title),
       ),
-      backgroundColor: Color.fromARGB(246, 255, 255, 255),
+      backgroundColor: Color.fromARGB(255, 238, 238, 191),
       body: ListView.builder(
         itemCount: tileTitles.length,
         itemBuilder: (context, index) {
-          return CheckboxListTile(
-            value: tileBools[index],
-            onChanged: (bool? newValue) {
-              setState(() {
-                if (false == tileBools[index]) {
-                  tileBools[index] = true;
-                } else {
-                  tileBools[index] = false;
-                }
-              });
-            },
-            checkColor: Color.fromARGB(255, 241, 241, 241),
-            title: Text(
-              tileTitles[index],
-              style: TextStyle(
-                color: const Color.fromARGB(255, 0, 0, 0),
-                decoration:
-                    tileBools[index]
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
+          return Row(
+            children: [
+              Expanded(
+                child: CheckboxListTile(
+                  value: tileBools[index],
+                  onChanged: (bool? newValue) {
+                    setState(() {
+                      if (false == tileBools[index]) {
+                        tileBools[index] = true;
+                      } else {
+                        tileBools[index] = false;
+                      }
+                      _reorder();
+                      saveData();
+                    });
+                  },
+                  checkColor: Color.fromARGB(255, 241, 241, 241),
+                  title: Text(
+                    tileTitles[index],
+                    style: TextStyle(
+                      color: const Color.fromARGB(255, 0, 0, 0),
+                      decoration:
+                          tileBools[index]
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
               ),
-            ),
+              IconButton(
+                icon: Icon(Icons.delete, color: Colors.green),
+                onPressed: () {
+                  setState(() {
+                    tileTitles.removeAt(index);
+                    tileBools.removeAt(index);
+                  });
+                  saveData();
+                },
+              ),
+            ],
           );
         },
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: _addExpansionTile,
+        onPressed: () {
+          setState(() {
+            _addExpansionTile();
+            // _reorder();
+            // saveData();
+          });
+        },
         tooltip: 'Add Expansion List',
         child: const Icon(Icons.add),
       ),
